@@ -1,28 +1,31 @@
 # OnePilot Agent Skill
 
-OnePilot Agent Skill is a Skill + CLI package for local coding agents.
+OnePilot Agent Skill 是给本地 agent 使用的 **Skill + CLI 工具包**。
 
-It lets Codex, Claude Code, OpenClaw, WorkBuddy, and similar local agents connect to OnePilot, recommend Shanghai events, maintain user preferences, run local subscriptions, and prepare event application answers.
+它可以让 Codex、Claude Code、OpenClaw、WorkBuddy 等本地 agent 连接 OnePilot，读取活动推荐、维护用户偏好、设置本地订阅，并协助生成活动报名答案。
 
-This is not an MCP server yet. The first release uses:
+- 官网：[https://onepilot.zeabur.app](https://onepilot.zeabur.app)
+- 小红书：`@One Pilot`
+
+第一版不是 MCP server，而是：
 
 ```text
-Skill instructions + onepilot-agent.mjs CLI + OnePilot Edge Functions
+Skill 说明 + onepilot-agent.mjs CLI + OnePilot 服务端 API
 ```
 
-## What It Does
+## 能做什么
 
-- Bind a local agent to a OnePilot account with either a website binding code or email verification code.
-- Let an agent read a mailbox verification code through a mail connector and finish binding through CLI.
-- Recommend up to 3 matching events by default.
-- Return OnePilot internal event URLs instead of external registration URLs.
-- Save, view, and delete agent-managed memory such as preferences, availability, application profile facts, and answer examples.
-- Support local subscription checks with `subscription due` and `subscription run-now`.
-- Prepare application-answer context from event details, user memory, and user-provided form questions.
+- 通过网站绑定码或邮箱验证码，把本地 agent 绑定到 OnePilot 账号。
+- 如果 agent 有 Gmail、Outlook 或其他邮箱工具，可以自动读取验证码邮件并完成绑定。
+- 根据用户偏好、时间、地点和需求推荐活动，默认最多返回 3 条。
+- 推荐结果只返回 OnePilot 站内活动 URL，不直接暴露外部报名链接。
+- 保存、查看和删除 agent 维护的长期记忆，例如偏好、可用时间、报名资料、常用回答素材。
+- 支持本地订阅：用 `subscription due` 判断是否到期，用 `subscription run-now` 获取推荐。
+- 支持报名协作：结合活动上下文、用户记忆和报名问题，帮助 agent 生成报名答案草稿。
 
-## Install For Codex
+## 安装到 Codex
 
-Clone this repository into your Codex skills directory:
+把这个仓库 clone 到 Codex skills 目录：
 
 ```bash
 mkdir -p "$HOME/.codex/skills"
@@ -30,36 +33,38 @@ git clone https://github.com/y09749204-gif/onepilot-agent-skill.git "$HOME/.code
 chmod +x "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs"
 ```
 
-Then check status:
+检查状态：
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" status
 ```
 
-## Bind By Email
+如果返回 `bound: false`，说明还没有绑定 OnePilot 账号。
 
-Ask your agent to bind OnePilot with your email. If the agent has a Gmail, Outlook, or other mailbox connector, it should read the latest OnePilot verification email and pipe the message into the CLI.
+## 邮箱验证码绑定
+
+让 agent 使用你的邮箱绑定 OnePilot。如果 agent 已经有 Gmail、Outlook 或其他邮箱 connector，它应该直接读取最新 OnePilot 验证码邮件，然后把邮件内容交给 CLI。
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" bind-email start --email user@example.com --agent-name Codex
 mail-tool-read-latest-onepilot-code | node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" bind-email verify --email user@example.com --code-stdin --agent-name Codex
 ```
 
-If no mailbox connector is available, paste the verification code to the agent and let it run:
+如果当前 agent 没有邮箱工具，可以先安装或授权对应邮箱 connector。最后兜底才是让用户把验证码发给 agent：
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" bind-email verify --email user@example.com --code 123456 --agent-name Codex
 ```
 
-## Bind With Website Code
+## 网站绑定码绑定
 
-If you already have a OnePilot binding code:
+如果你已经在 OnePilot 网站里生成了绑定码：
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" bind --code OPB-XXXXXXXXXXXX --agent-name Codex
 ```
 
-## Recommend Events
+## 推荐活动
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" recommend \
@@ -69,26 +74,39 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" recommend \
   --limit 3
 ```
 
-The agent should summarize the strongest recommendation first and include OnePilot internal event URLs.
+agent 应该先说明最推荐的一条，再列出其他选项，并附上 OnePilot 站内活动 URL。
 
-## Local Subscriptions
+如果用户问“哪一场更值得去”“帮我判断要不要报名”，agent 可以用推荐结果里的 `detailToken` 调用 `event-context` 获取更完整的活动上下文。
 
-OnePilot does not send cloud email subscriptions in this first release. The local agent owns scheduling and delivery.
+## 本地订阅
+
+第一版不由 OnePilot 云端主动发邮件。订阅由本地 agent 负责调度和发送，OnePilot 只提供推荐结果。
+
+设置订阅：
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription set \
   --query "每天最多一次提醒我适合 AI agent 创业者的活动" \
   --topics "AI agent,创业"
+```
 
+本地定时器或 agent 唤醒后，先判断今天是否该推：
+
+```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription due
+```
+
+只有 `due: true` 时，再获取推荐：
+
+```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription run-now
 ```
 
-When email delivery is desired, the agent should use the user's authorized mailbox connector.
+如果用户选择邮件提醒，agent 应该使用用户授权的邮箱工具发送推荐摘要。
 
-## Application Help
+## 报名协作
 
-After the user provides form questions or OCR text from a screenshot:
+用户提供报名问题文本，或者让 agent 从截图 OCR 出问题后，可以运行：
 
 ```bash
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" application prepare \
@@ -96,28 +114,30 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" application prepa
   --questions "报名问题文本"
 ```
 
-The agent should draft answers locally from returned event context and saved memory.
+CLI 会返回活动上下文、已保存记忆和报名问题。最终答案由本地 agent 生成。缺少真实个人信息时，agent 应该追问用户，不要编造。
 
-## Adapter Notes
+## 适配说明
 
-See:
+当前包含四份轻适配说明：
 
 - `references/codex.md`
 - `references/claude-code.md`
 - `references/openclaw.md`
 - `references/workbuddy.md`
 
-## Token Storage
+第一版保持一个通用 CLI，不为每个平台复制业务代码。
 
-The CLI stores the local agent token at:
+## 本地 token
+
+CLI 会把本地 agent token 保存到：
 
 ```text
 ~/.config/onepilot/agent.json
 ```
 
-Do not paste, print, commit, or share this file.
+不要把这个文件复制、粘贴、提交到 GitHub 或发给别人。
 
-## Status
+## 当前状态
 
-`v0.1.0-alpha` is intended for early testing. MCP packaging may be added later.
+`v0.1.0-alpha` 是早期测试版本。后续可能提供 MCP 版本，让支持原生工具调用的平台更容易接入。
 
