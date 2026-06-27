@@ -20,6 +20,7 @@ Skill 说明 + onepilot-agent.mjs CLI + OnePilot 服务端 API
 - 根据用户偏好、时间、地点和需求推荐活动，默认最多返回 3 条。
 - 推荐结果只返回 OnePilot 站内活动 URL，不直接暴露外部报名链接。
 - 保存、查看和删除 agent 维护的长期记忆，例如偏好、可用时间、报名资料、常用回答素材。
+- 记录用户对推荐活动的反应，把“什么画像喜欢什么活动”的数据沉淀到 OnePilot 云端。
 - 支持本地订阅：用 `subscription due` 判断是否到期，用 `subscription run-now` 获取推荐。
 - 支持报名协作：结合活动上下文、用户记忆和报名问题，帮助 agent 生成报名答案草稿。
 
@@ -77,6 +78,21 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" recommend \
 agent 应该先说明最推荐的一条，再列出其他选项，并附上 OnePilot 站内活动 URL。
 
 如果用户问“哪一场更值得去”“帮我判断要不要报名”，agent 可以用推荐结果里的 `detailToken` 调用 `event-context` 获取更完整的活动上下文。
+
+## 画像学习反馈
+
+当用户对推荐活动有明确反应时，agent 可以把这个信号记录到 OnePilot 云端，例如：感兴趣、已报名、不适合、保存、分享、选择某一条。
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" feedback record \
+  --recommendation-id rec_xxx \
+  --action interested \
+  --position 0 \
+  --profile-json '{"topics":["AI agent"],"stage":"early founder"}' \
+  --target-profile-json '{"wantsToMeet":["AI 产品创业者","投资人"]}'
+```
+
+这不会替代用户记忆；它用于长期分析“什么画像的用户喜欢报名什么活动”，后续可以反过来优化推荐排序。
 
 ## 本地订阅
 
