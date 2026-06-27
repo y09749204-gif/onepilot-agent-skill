@@ -1,8 +1,8 @@
-# OnePilot Agent Skill
+# OnePilot Skill
 
-OnePilot Agent Skill 是给本地 agent 使用的 **Skill + CLI 工具包**。
+OnePilot Skill 是给本地 agent 使用的 **Skill + CLI 工具包**。
 
-它可以让 Codex、Claude Code、OpenClaw、WorkBuddy 等本地 agent 连接 OnePilot，读取活动推荐、维护用户偏好、设置本地订阅，并协助生成活动报名答案。
+它可以让 Codex、Claude Code、OpenClaw、Gemini CLI 等主流本地 agent 连接 OnePilot；其他支持本地命令、Skill、Extension 或 MCP 的 agent 也可以接入。
 
 - 官网：[https://onepilot.zeabur.app](https://onepilot.zeabur.app)
 - 小红书：`@One Pilot`
@@ -29,7 +29,7 @@ Skill 说明 + onepilot-agent.mjs CLI + OnePilot 服务端 API
 
 ```bash
 mkdir -p "$HOME/.codex/skills"
-git clone https://github.com/y09749204-gif/onepilot-agent-skill.git "$HOME/.codex/skills/onepilot"
+git clone https://github.com/y09749204-gif/onepilot-skill.git "$HOME/.codex/skills/onepilot"
 chmod +x "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs"
 ```
 
@@ -140,4 +140,3 @@ CLI 会把本地 agent token 保存到：
 ## 当前状态
 
 `v0.1.0-alpha` 是早期测试版本。后续可能提供 MCP 版本，让支持原生工具调用的平台更容易接入。
-
