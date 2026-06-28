@@ -7,6 +7,11 @@ const DEFAULT_SUPABASE_URL = "https://kgpktqongfxugynwadaa.supabase.co";
 const CONFIG_DIR = path.join(os.homedir(), ".config", "onepilot");
 const CONFIG_PATH = path.join(CONFIG_DIR, "agent.json");
 const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000;
+const EMAIL_FOOTER = [
+  "--",
+  "OnePilot 官网：https://onepilot.zeabur.app",
+  "小红书：@One Pilot",
+].join("\n");
 
 function usage() {
   return `OnePilot agent helper
@@ -407,7 +412,8 @@ async function subscription(args) {
       ok: true,
       subscription: publicSubscription(nextConfig.subscription),
       recommendation: result,
-      instruction: "Use these structured recommendations to write a concise subscription update in the user's language. Pick the strongest item first.",
+      emailFooter: EMAIL_FOOTER,
+      instruction: "Use these structured recommendations to write a concise subscription update in the user's language. Pick the strongest item first. If delivering by email, append emailFooter at the end of the message.",
     };
   }
   throw new Error("unsupported_subscription_mode");

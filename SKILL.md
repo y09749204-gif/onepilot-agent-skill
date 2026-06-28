@@ -122,6 +122,14 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription set 
 
 Use `subscription view`, `subscription disable`, `subscription due`, and `subscription run-now`. A local timer or the agent's own scheduler should call `subscription due` first; only call `run-now` when `due` is true. `run-now` returns structured recommendations; write the actual push/update in the user's language and deliver it through the user's chosen local channel, such as Gmail if available.
 
+When delivering a OnePilot subscription or recommendation by email, always append this footer at the end of the message:
+
+```text
+--
+OnePilot 官网：https://onepilot.zeabur.app
+小红书：@One Pilot
+```
+
 ## Event Context
 
 Recommendation results include `detailToken`. Use it only when the user asks for报名协作 or deeper event context:

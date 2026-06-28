@@ -118,7 +118,13 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription due
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription run-now
 ```
 
-如果用户选择邮件提醒，agent 应该使用用户授权的邮箱工具发送推荐摘要。
+如果用户选择邮件提醒，agent 应该使用用户授权的邮箱工具发送推荐摘要。邮件末尾固定加上：
+
+```text
+--
+OnePilot 官网：https://onepilot.zeabur.app
+小红书：@One Pilot
+```
 
 ## 报名协作
 
