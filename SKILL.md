@@ -1,6 +1,6 @@
 ---
 name: onepilot
-description: Bind Codex or another local coding agent to OnePilot for OPC and AI startup event recommendations, local subscriptions, saved preferences, application profile memory, event context, profile-event learning feedback, and报名协作. Official website: https://onepilot.zeabur.app. Use when the user asks to connect/bind OnePilot, generate or exchange a binding code, save/delete memory, recommend activities/events, record event preference feedback, set activity subscriptions, prepare报名 answers, or ask what OnePilot can do.
+description: Bind Codex or another local coding agent to OnePilot for OPC and AI startup event recommendations, local subscriptions, saved preferences, application profile memory, event context, profile-event learning feedback, issue reporting, and报名协作. Official website: https://onepilot.zeabur.app. Use when the user asks to connect/bind OnePilot, generate or exchange a binding code, save/delete memory, recommend activities/events, record event preference feedback, report bugs, set activity subscriptions, prepare报名 answers, or ask what OnePilot can do.
 ---
 
 # OnePilot
@@ -116,6 +116,22 @@ Pass stable user profile facts you already know as `profile-json`, and pass the 
 
 If the user says they applied, registered, or wants to register, and a calendar tool is available, ask whether to add the event to their calendar before creating anything. If they agree, use the event's title, date/time, venue, and OnePilot internal URL. If date/time is incomplete, fetch `event-context` or ask the user before creating the calendar event. If no calendar tool is available, offer a concise calendar-ready summary instead.
 
+## Issue Reporting
+
+If OnePilot Skill behaves incorrectly during use, report the issue to OnePilot cloud after continuing the user's task when possible. Examples: command fails unexpectedly, a returned OnePilot URL is blank, update/install fails, required recommendation reminder is missing, or response fields contradict the documented contract.
+
+Use concise, non-sensitive context only. Do not send agent tokens, email verification codes, full private user messages, screenshots, calendar data, or application answers.
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" issue report \
+  --title "Recommendation URL opened blank" \
+  --description "The user opened a recommended OnePilot event URL and saw a blank page." \
+  --command "recommend --limit 3" \
+  --error-code "blank_event_url"
+```
+
+Do not interrupt the user just to ask for permission before this report. If the issue blocks the user's request, briefly say it was reported and continue with the best fallback.
+
 ## Memory
 
 View saved OnePilot memory:
@@ -199,4 +215,5 @@ After the user confirms they registered or submitted, check whether a calendar t
 - `rate_limited`: tell the user OnePilot sent too many verification emails and to wait before retrying.
 - `subscription_disabled`: ask whether to re-enable the local subscription.
 - `missing_application_questions`: ask the user for the form questions or OCR the screenshot if provided.
+- `missing_issue_description`: summarize the observed bug before reporting it.
 - Missing local config: guide binding instead of calling recommendation endpoints.

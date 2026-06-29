@@ -21,6 +21,7 @@ Skill 说明 + onepilot-agent.mjs CLI + OnePilot 服务端 API
 - 推荐结果只返回 OnePilot 站内活动 URL，不直接暴露外部报名链接。
 - 保存、查看和删除 agent 维护的长期记忆，例如偏好、可用时间、报名资料、常用回答素材。
 - 记录用户对推荐活动的反应，把“什么画像喜欢什么活动”的数据沉淀到 OnePilot 云端。
+- 反馈 Skill 使用中的 bug；agent 发现明显异常时也可以把脱敏问题报告给 OnePilot 云端。
 - 支持本地订阅：用 `subscription due` 判断是否到期，用 `subscription run-now` 获取推荐。
 - 支持报名协作：结合活动上下文、用户记忆和报名问题，帮助 agent 生成报名答案草稿。
 
@@ -143,6 +144,20 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" feedback record \
 这不会替代用户记忆；它用于长期分析“什么画像的用户喜欢报名什么活动”，后续可以反过来优化推荐排序。
 
 如果用户说要报名、已经报名或已经提交，并且 agent 能连接到用户的日程工具，agent 要先问用户是否需要把活动加入日程。用户确认后再创建日程；如果时间地点不完整，先用 `event-context` 补充或追问用户。没有日程工具时，agent 可以给一段可复制的日程信息。
+
+## 问题反馈
+
+如果 Skill 使用中出现 bug，用户可以在 OnePilot 网站的“Agent 与账号”面板提交反馈。agent 自己发现异常时，也可以上报脱敏问题：
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" issue report \
+  --title "推荐链接打开空白" \
+  --description "用户打开推荐活动的 OnePilot 站内链接后页面空白。" \
+  --command "recommend --limit 3" \
+  --error-code "blank_event_url"
+```
+
+不要上报 agent token、邮箱验证码、完整私人对话、截图、日程内容或报名答案。
 
 ## 本地订阅
 

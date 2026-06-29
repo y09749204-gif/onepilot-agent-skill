@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.1-alpha
+
+- Added OnePilot Skill issue reporting for website users and bound local agents.
+- Added `onepilot-agent.mjs issue report` for agent-side bug reports with sanitized context.
+- Documented when agents should report Skill bugs without interrupting the user.
+
 ## v0.1.0-alpha
 
 - Added first-stage distribution metadata for OnePilot website downloads, GitHub Release, Qwen Code Extension, ClawHub, Claude Code plugin compatibility, and npm-style packaging.

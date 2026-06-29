@@ -47,6 +47,7 @@ Usage:
   onepilot-agent.mjs application prepare --detail-token dt_xxx --questions TEXT
   onepilot-agent.mjs event-context --detail-token dt_xxx
   onepilot-agent.mjs feedback record --recommendation-id rec_xxx --action interested [--position 0] [--profile-json '{}'] [--target-profile-json '{}']
+  onepilot-agent.mjs issue report --description TEXT [--title TEXT] [--command TEXT] [--error-code TEXT] [--metadata-json '{}']
 `;
 }
 
@@ -500,6 +501,28 @@ async function feedback(args) {
   }, config.agentToken);
 }
 
+async function issue(args) {
+  const mode = args._[1] || "report";
+  if (mode !== "report") throw new Error("unsupported_issue_mode");
+  const config = requireConfig();
+  const description = String(args.description || args.message || "").trim();
+  if (!description) throw new Error("missing_issue_description");
+  return postJson(`${config.supabaseUrl}/functions/v1/agent-issue-report`, {
+    title: String(args.title || description.split(/\n+/)[0] || "OnePilot Skill issue").trim().slice(0, 120),
+    description,
+    severity: String(args.severity || "bug").trim(),
+    source: "agent",
+    command: String(args.command || "").trim(),
+    errorCode: String(args["error-code"] || "").trim(),
+    skillVersion: readLocalVersion(),
+    metadata: {
+      agentLabel: config.label || "",
+      skillDir: SKILL_DIR,
+      ...parseOptionalJson(args["metadata-json"], "invalid_metadata_json"),
+    },
+  }, config.agentToken);
+}
+
 function normalizeFrequency(value) {
   const frequency = String(value || "daily").trim().toLowerCase();
   if (frequency !== "daily") throw new Error("unsupported_subscription_frequency");
@@ -678,6 +701,8 @@ async function main() {
     result = await memory(args);
   } else if (command === "feedback") {
     result = await feedback(args);
+  } else if (command === "issue") {
+    result = await issue(args);
   } else if (command === "subscription") {
     result = await subscription(args);
   } else if (command === "application") {
