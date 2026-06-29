@@ -116,6 +116,8 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" feedback record \
 
 这不会替代用户记忆；它用于长期分析“什么画像的用户喜欢报名什么活动”，后续可以反过来优化推荐排序。
 
+如果用户说要报名、已经报名或已经提交，并且 agent 能连接到用户的日程工具，agent 要先问用户是否需要把活动加入日程。用户确认后再创建日程；如果时间地点不完整，先用 `event-context` 补充或追问用户。没有日程工具时，agent 可以给一段可复制的日程信息。
+
 ## 本地订阅
 
 第一版不由 OnePilot 云端主动发邮件。订阅由本地 agent 负责调度和发送，OnePilot 只提供推荐结果。
@@ -159,6 +161,8 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" application prepa
 ```
 
 CLI 会返回活动上下文、已保存记忆和报名问题。最终答案由本地 agent 生成。缺少真实个人信息时，agent 应该追问用户，不要编造。
+
+用户确认报名完成后，如果 agent 有日程工具，应询问是否添加到日程；不能静默创建、修改或删除用户日程。
 
 ## 适配说明
 

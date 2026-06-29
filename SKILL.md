@@ -112,6 +112,8 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" feedback record \
 
 Pass stable user profile facts you already know as `profile-json`, and pass the type of person/resource the user wants to connect with as `target-profile-json`. Keep this concise and structured. Do not add a separate confirmation step just for recording feedback.
 
+If the user says they applied, registered, or wants to register, and a calendar tool is available, ask whether to add the event to their calendar before creating anything. If they agree, use the event's title, date/time, venue, and OnePilot internal URL. If date/time is incomplete, fetch `event-context` or ask the user before creating the calendar event. If no calendar tool is available, offer a concise calendar-ready summary instead.
+
 ## Memory
 
 View saved OnePilot memory:
@@ -181,6 +183,8 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" application prepa
 ```
 
 Use the returned event context and saved memory to draft answers locally. Ask the user for missing personal facts; do not invent them.
+
+After the user confirms they registered or submitted, check whether a calendar tool is available. Ask before adding the event to the calendar; never silently create, edit, or delete calendar events.
 
 ## Error Handling
 
