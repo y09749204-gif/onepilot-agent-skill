@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.5-alpha
+
+- Documented all current OnePilot Skill quotas and constraints in local Skill files.
+- Added quota details to `status.accountPolicy` so agents can answer limit questions directly.
+
 ## v0.1.4-alpha
 
 - Added first-run `status.nextAction` and `status.userFacingPrompt` so agents proactively introduce OnePilot and guide account binding.

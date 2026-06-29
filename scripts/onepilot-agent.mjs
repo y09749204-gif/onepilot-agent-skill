@@ -301,7 +301,20 @@ function accountPolicySummary() {
     singleActiveAgentPerAccount: true,
     rebindingRevokesPreviousAgent: true,
     quotaScope: "account",
-    recommendationDailyLimit: 3,
+    quotas: {
+      recommendationRequestsPerDay: 3,
+      recommendationResultsPerRequest: 3,
+      eventContextRequestsPerDay: 20,
+      websiteBindingCodesPerDay: 5,
+      localSubscriptionFrequency: "daily",
+      emailVerificationCodeExpiresInSeconds: 600,
+    },
+    nonDailyLimits: {
+      emailVerification: "Supabase Auth may return rate_limited; OnePilot does not define a fixed daily email-code count.",
+      memory: "No daily quota; allowed memory types are preferences, availability, application_profile, and answer_examples. One row is stored per account and memory type.",
+      feedback: "No daily quota; feedback must reference a recommendation returned to the current bound agent.",
+      issueReports: "No daily quota; bug reports require a title or description and should be sanitized.",
+    },
   };
 }
 
@@ -309,7 +322,7 @@ function statusNextAction(bound) {
   if (!bound) {
     return "请主动用中文告诉用户：OnePilot Skill 已安装完成但还没有绑定账号。询问用户是否现在绑定；如果有 Gmail、Outlook 或其他邮箱工具，优先帮用户读取 OnePilot 邮箱验证码并通过 bind-email 完成绑定；否则请用户提供网站绑定码。";
   }
-  return "请主动用中文告诉用户：OnePilot 已绑定，可以开始推荐 OPC 和 AI 创业活动、保存偏好、设置订阅或准备报名回答。提醒：同一账号同时只有一个有效 agent，新设备绑定会让旧设备自动失效，推荐额度按账号共享。";
+  return "请主动用中文告诉用户：OnePilot 已绑定，可以开始推荐 OPC 和 AI 创业活动、保存偏好、设置订阅或准备报名回答。提醒：同一账号同时只有一个有效 agent，新设备绑定会让旧设备自动失效；活动推荐每天 3 次、每次最多 3 条，活动上下文每天 20 次，额度按账号共享。";
 }
 
 function statusUserFacingPrompt(bound) {

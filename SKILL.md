@@ -74,6 +74,26 @@ One OnePilot account can have only one active agent token at a time. Binding a n
 
 Recommendation quota is account-based, not agent-based. All devices and agents bound to the same OnePilot account share the same daily recommendation quota.
 
+## Current Limits
+
+Treat these limits as the current OnePilot Skill contract. Read `status.accountPolicy` when available because newer versions may expose updated values.
+
+Fixed quotas:
+
+- Activity recommendations: 3 requests per account per day.
+- Recommendation results: at most 3 activities per request.
+- Event context /报名协作 context: 20 requests per account per day.
+- Website binding codes: 5 generated codes per account per day.
+- Local subscription: only `daily` frequency is supported; `subscription due` prevents more than one due run in a day.
+
+Other limits and constraints:
+
+- Email verification codes expire after 600 seconds. Email sending can return `rate_limited` from Supabase Auth; OnePilot does not define a fixed daily email-code count.
+- Cloud memory has no daily quota, but only these memory types are accepted: `preferences`, `availability`, `application_profile`, `answer_examples`. One row is stored per account and memory type.
+- Feedback has no daily quota, but it must reference a recommendation ID returned to the current bound agent.
+- Issue reports have no daily quota, but must include a title or description and must not contain tokens, OTP codes, private screenshots, or full private messages.
+- Request bodies are size-limited by endpoint. Keep profile, memory, feedback, and issue metadata concise and structured.
+
 ## Version And Updates
 
 The local version is stored in `VERSION`. Use:
