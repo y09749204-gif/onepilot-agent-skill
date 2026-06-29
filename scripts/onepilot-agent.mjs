@@ -2,8 +2,16 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import crypto from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_SUPABASE_URL = "https://kgpktqongfxugynwadaa.supabase.co";
+const DEFAULT_SITE_URL = "https://onepilot.zeabur.app";
+const DEFAULT_MANIFEST_URL = `${DEFAULT_SITE_URL}/downloads/onepilot-skill-manifest.json`;
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
+const SKILL_DIR = path.dirname(path.dirname(SCRIPT_PATH));
+const VERSION_PATH = path.join(SKILL_DIR, "VERSION");
 const CONFIG_DIR = path.join(os.homedir(), ".config", "onepilot");
 const CONFIG_PATH = path.join(CONFIG_DIR, "agent.json");
 const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000;
@@ -17,6 +25,9 @@ function usage() {
   return `OnePilot agent helper
 
 Usage:
+  onepilot-agent.mjs version
+  onepilot-agent.mjs check-update [--manifest-url URL]
+  onepilot-agent.mjs update [--manifest-url URL]
   onepilot-agent.mjs status
   onepilot-agent.mjs bind --code OPB-XXXXXXXXXXXX [--agent-name Codex]
   onepilot-agent.mjs bind-email start --email USER@example.com [--agent-name Codex]
@@ -81,6 +92,185 @@ function readConfig() {
   }
 }
 
+function readLocalVersion() {
+  try {
+    return fs.readFileSync(VERSION_PATH, "utf8").trim() || "0.0.0-local";
+  } catch (_error) {
+    return "0.0.0-local";
+  }
+}
+
+function versionSummary(extra = {}) {
+  return {
+    current: readLocalVersion(),
+    skillDir: SKILL_DIR,
+    versionPath: VERSION_PATH,
+    manifestUrl: extra.manifestUrl || DEFAULT_MANIFEST_URL,
+    ...extra,
+  };
+}
+
+function parseVersion(value) {
+  const raw = String(value || "").trim().replace(/^v/i, "");
+  const [core, prerelease = ""] = raw.split("-", 2);
+  const numbers = core.split(".").map((item) => Number.parseInt(item, 10));
+  while (numbers.length < 3) numbers.push(0);
+  return {
+    numbers: numbers.slice(0, 3).map((item) => (Number.isFinite(item) ? item : 0)),
+    prerelease,
+  };
+}
+
+function compareVersions(left, right) {
+  const a = parseVersion(left);
+  const b = parseVersion(right);
+  for (let index = 0; index < 3; index += 1) {
+    if (a.numbers[index] !== b.numbers[index]) return a.numbers[index] > b.numbers[index] ? 1 : -1;
+  }
+  if (a.prerelease === b.prerelease) return 0;
+  if (!a.prerelease) return 1;
+  if (!b.prerelease) return -1;
+  return a.prerelease.localeCompare(b.prerelease);
+}
+
+async function fetchJson(url) {
+  const response = await fetch(url, { headers: { Accept: "application/json" } });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const error = new Error(`manifest_request_failed:${response.status}`);
+    error.payload = payload;
+    throw error;
+  }
+  return payload;
+}
+
+function manifestUrl(args) {
+  return String(args["manifest-url"] || process.env.ONEPILOT_SKILL_MANIFEST_URL || DEFAULT_MANIFEST_URL).trim();
+}
+
+function validateManifest(manifest) {
+  const latestVersion = String(manifest?.latestVersion || "").trim();
+  const zipUrl = String(manifest?.zipUrl || "").trim();
+  const sha256 = String(manifest?.sha256 || "").trim().toLowerCase();
+  if (!latestVersion) throw new Error("invalid_manifest_version");
+  if (!/^https?:\/\//i.test(zipUrl)) throw new Error("invalid_manifest_zip_url");
+  if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error("invalid_manifest_sha256");
+  return {
+    name: String(manifest?.name || "OnePilot Skill").trim(),
+    latestVersion,
+    zipUrl,
+    sha256,
+    releasedAt: String(manifest?.releasedAt || "").trim(),
+    changelogUrl: String(manifest?.changelogUrl || "").trim(),
+  };
+}
+
+async function checkUpdate(args = {}) {
+  const url = manifestUrl(args);
+  const current = readLocalVersion();
+  const manifest = validateManifest(await fetchJson(url));
+  const updateAvailable = compareVersions(manifest.latestVersion, current) > 0;
+  return {
+    ok: true,
+    current,
+    latest: manifest.latestVersion,
+    updateAvailable,
+    manifestUrl: url,
+    zipUrl: manifest.zipUrl,
+    releasedAt: manifest.releasedAt,
+    changelogUrl: manifest.changelogUrl,
+  };
+}
+
+async function safeVersionCheck(args = {}) {
+  try {
+    return await checkUpdate(args);
+  } catch (error) {
+    return {
+      ok: false,
+      current: readLocalVersion(),
+      latest: "",
+      updateAvailable: false,
+      manifestUrl: manifestUrl(args),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+async function downloadFile(url, destination) {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`download_failed:${response.status}`);
+  const bytes = Buffer.from(await response.arrayBuffer());
+  fs.writeFileSync(destination, bytes);
+  return bytes;
+}
+
+function sha256File(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function findSkillSource(root) {
+  const stack = [root];
+  while (stack.length) {
+    const current = stack.pop();
+    const skillPath = path.join(current, "SKILL.md");
+    if (fs.existsSync(skillPath)) return current;
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      if (!entry.isDirectory() || entry.name === "__MACOSX") continue;
+      stack.push(path.join(current, entry.name));
+    }
+  }
+  throw new Error("downloaded_archive_missing_skill");
+}
+
+function replaceSkillDirectory(sourceDir) {
+  const parent = path.dirname(SKILL_DIR);
+  const backupDir = path.join(parent, `.onepilot-backup-${Date.now()}`);
+  const nextDir = path.join(parent, `.onepilot-next-${Date.now()}`);
+  fs.cpSync(sourceDir, nextDir, { recursive: true });
+  if (!fs.existsSync(path.join(nextDir, "SKILL.md"))) throw new Error("downloaded_archive_missing_skill");
+  fs.renameSync(SKILL_DIR, backupDir);
+  try {
+    fs.renameSync(nextDir, SKILL_DIR);
+    fs.rmSync(backupDir, { recursive: true, force: true });
+  } catch (error) {
+    if (fs.existsSync(SKILL_DIR)) fs.rmSync(SKILL_DIR, { recursive: true, force: true });
+    fs.renameSync(backupDir, SKILL_DIR);
+    throw error;
+  }
+}
+
+async function updateSkill(args = {}) {
+  const check = await checkUpdate(args);
+  if (!check.updateAvailable) {
+    return { ok: true, updated: false, current: check.current, latest: check.latest };
+  }
+
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "onepilot-skill-update-"));
+  try {
+    const zipPath = path.join(tempDir, "onepilot-skill.zip");
+    await downloadFile(check.zipUrl, zipPath);
+    const actualSha = sha256File(zipPath);
+    if (actualSha !== validateManifest(await fetchJson(check.manifestUrl)).sha256) {
+      throw new Error("sha256_mismatch");
+    }
+    const extractDir = path.join(tempDir, "extract");
+    fs.mkdirSync(extractDir, { recursive: true });
+    execFileSync("unzip", ["-q", zipPath, "-d", extractDir], { stdio: "ignore" });
+    replaceSkillDirectory(findSkillSource(extractDir));
+    const nextVersion = readLocalVersion();
+    return {
+      ok: true,
+      updated: true,
+      from: check.current,
+      to: nextVersion,
+      latest: check.latest,
+    };
+  } finally {
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
 function writeConfig(config) {
   ensureConfigDir();
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
@@ -96,6 +286,7 @@ function safeConfigSummary(config) {
     scopes: Array.isArray(config?.scopes) ? config.scopes : [],
     boundAt: config?.boundAt || "",
     subscription: publicSubscription(config?.subscription),
+    version: versionSummary(),
   };
 }
 
@@ -455,8 +646,16 @@ async function main() {
     process.stdout.write(usage());
     return;
   }
-  if (command === "status") {
-    result = safeConfigSummary(readConfig());
+  if (command === "version") {
+    result = { ok: true, ...versionSummary({ configPath: CONFIG_PATH }) };
+  } else if (command === "check-update") {
+    result = await checkUpdate(args);
+  } else if (command === "update") {
+    result = await updateSkill(args);
+  } else if (command === "status") {
+    const summary = safeConfigSummary(readConfig());
+    summary.version = await safeVersionCheck(args);
+    result = summary;
   } else if (command === "bind") {
     result = await bind(args);
   } else if (command === "bind-email") {

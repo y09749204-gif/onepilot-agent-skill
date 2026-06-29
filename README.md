@@ -26,6 +26,20 @@ Skill 说明 + onepilot-agent.mjs CLI + OnePilot 服务端 API
 
 ## 安装到 Codex
 
+当前版本以仓库根目录的 `VERSION` 文件为准。agent 使用 OnePilot 前应先检查更新；如果有新版，第一版默认自动更新：
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" version
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" check-update
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" update
+```
+
+更新只替换 Skill 文件，不会删除本地绑定配置：
+
+```text
+~/.config/onepilot/agent.json
+```
+
 把这个仓库 clone 到 Codex skills 目录：
 
 ```bash

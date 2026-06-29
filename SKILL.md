@@ -17,6 +17,20 @@ Run the bundled helper:
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" status
 ```
 
+Before the first OnePilot action in a session, check for updates:
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" check-update
+```
+
+If it reports `updateAvailable: true`, automatically run:
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" update
+```
+
+After a successful update, continue the user's original binding, recommendation, subscription, memory, or报名协作 request. If updating fails, tell the user that OnePilot Skill update failed and continue with the local version when the requested action can still run.
+
 If it reports `bound: true`, use the helper for OnePilot calls.
 
 If it reports `bound: false`, help the user bind:
@@ -43,6 +57,18 @@ mail-tool-read-latest-onepilot-code | node "$HOME/.codex/skills/onepilot/scripts
 If no connector for the user's mailbox is available, ask the user to install or authorize the matching email connector, and mention it will be useful for both binding verification and future email-based subscriptions/reminders. Only fall back to asking the user to paste the code when connector access is unavailable.
 
 This saves the agent token to `~/.config/onepilot/agent.json` with `0600` permissions. Never print, paste, commit, or expose the token.
+
+## Version And Updates
+
+The local version is stored in `VERSION`. Use:
+
+```bash
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" version
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" check-update
+node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" update
+```
+
+Updates come from the OnePilot website manifest and zip package. Updating replaces only the skill directory and preserves `~/.config/onepilot/agent.json`, so the bound account remains connected.
 
 ## Recommend Events
 
