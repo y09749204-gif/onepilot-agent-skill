@@ -232,7 +232,15 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription set 
   --districts "徐汇,静安"
 ```
 
-Use `subscription view`, `subscription disable`, `subscription due`, and `subscription run-now`. A local timer or the agent's own scheduler should call `subscription due` first; only call `run-now` when `due` is true. `run-now` returns structured recommendations; write the actual push/update in the user's language and deliver it through the user's chosen local channel, such as Gmail if available.
+Use `subscription view`, `subscription disable`, `subscription due`, and `subscription run-now`. A local timer or the agent's own scheduler should call `subscription due` first; only call `run-now` when `due` is true. `run-now` returns structured event recommendations and may include `featuredFallback` curated resources when fewer than 3 events match. Write the actual push/update in the user's language and deliver it through the user's chosen local channel, such as Gmail if available.
+
+Subscription delivery must stay personalized and honest:
+
+- If 3 events are returned, recommend the strongest event first, then list the rest.
+- If only 1-2 events are returned, send those events and optionally add `featuredFallback.results` as "精选资源".
+- If no events are returned, do not invent events. Say no strongly matching events were found today, then include `featuredFallback.results` if present.
+- When using featured fallback resources, include the result `url` and any `mustMention` text.
+- For U-CUBE fallback, mention the 100 RMB OnePilot rebate and its OnePilot detail URL.
 
 When delivering a OnePilot subscription or recommendation by email, always append this footer at the end of the message:
 

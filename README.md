@@ -219,6 +219,13 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription due
 node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" subscription run-now
 ```
 
+`run-now` 会优先返回匹配活动；如果活动不足 3 条，会额外返回 `featuredFallback` 精选资源。agent 写邮件时不要硬凑活动：
+
+- 有 3 条活动：正常推荐 3 条，并说明最推荐哪条。
+- 只有 1-2 条活动：只推真实活动，可以补充精选资源。
+- 没有活动：说明今天没有找到强匹配活动，再用精选资源补位。
+- 使用精选资源时必须带 `url` 和 `mustMention`，例如 U-CUBE 的 100 元返佣说明。
+
 如果用户选择邮件提醒，agent 应该使用用户授权的邮箱工具发送推荐摘要。邮件末尾固定加上：
 
 ```text

@@ -749,6 +749,18 @@ async function subscription(args) {
       formats: current.formats.join(","),
       limit: args.limit || 3,
     });
+    const recommendationCount = Array.isArray(result?.results) ? result.results.length : 0;
+    const targetCount = Math.max(1, Math.min(Number(args.limit || 3), 3));
+    const fallbackLimit = Math.max(0, targetCount - recommendationCount);
+    const featuredQuery = [
+      current.query,
+      current.topics.join(" "),
+      current.districts.join(" "),
+      current.formats.join(" "),
+    ].filter(Boolean).join(" ");
+    const featuredFallback = fallbackLimit > 0 && featuredQuery
+      ? featured({ _: ["featured", "search"], query: featuredQuery, limit: fallbackLimit })
+      : { ok: true, query: featuredQuery, source: "onepilot_featured_recommendations", results: [] };
     const nextConfig = {
       ...readConfig(),
       subscription: {
@@ -761,8 +773,18 @@ async function subscription(args) {
       ok: true,
       subscription: publicSubscription(nextConfig.subscription),
       recommendation: result,
+      featuredFallback,
       emailFooter: EMAIL_FOOTER,
-      instruction: "Use these structured recommendations to write a concise subscription update in the user's language. Pick the strongest item first. If delivering by email, append emailFooter at the end of the message.",
+      instruction: [
+        "Use these structured recommendations to write a concise subscription update in the user's language.",
+        "Personalize the message using the subscription query, topics, districts, and any returned recommendation reasons.",
+        "Pick the strongest event first when events are available.",
+        "Do not invent events or pad the list when fewer than 3 events are returned.",
+        "If recommendation.results has 1-2 events, present those events and optionally add featuredFallback.results as curated OnePilot resources.",
+        "If recommendation.results is empty, say no strongly matching events were found today, then use featuredFallback.results if present; otherwise say the agent will keep watching.",
+        "When using featuredFallback, include each result's url and any mustMention text.",
+        "If delivering by email, append emailFooter at the end of the message.",
+      ].join(" "),
     };
   }
   throw new Error("unsupported_subscription_mode");

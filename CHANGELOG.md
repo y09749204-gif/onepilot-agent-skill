@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.12-alpha
+
+- Added subscription fallback behavior for personalized email/activity pushes.
+- `subscription run-now` now returns `featuredFallback` curated resources when fewer than 3 events match.
+- Documented honest delivery rules for 0, 1-2, and 3 event subscription results.
+
 ## v0.1.11-alpha
 
 - Updated AgentMe featured recommendation link to the official invite URL.
