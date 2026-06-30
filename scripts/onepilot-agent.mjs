@@ -9,6 +9,7 @@ import { fileURLToPath } from "node:url";
 const DEFAULT_SUPABASE_URL = "https://kgpktqongfxugynwadaa.supabase.co";
 const DEFAULT_SITE_URL = "https://onepilot.zeabur.app";
 const DEFAULT_MANIFEST_URL = `${DEFAULT_SITE_URL}/downloads/onepilot-skill-manifest.json`;
+const TRUSTED_PACKAGE_HOSTS = new Set(["onepilot.zeabur.app", "github.com", "objects.githubusercontent.com"]);
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const SKILL_DIR = path.dirname(path.dirname(SCRIPT_PATH));
 const VERSION_PATH = path.join(SKILL_DIR, "VERSION");
@@ -38,7 +39,7 @@ Usage:
   onepilot-agent.mjs featured search --query TEXT [--limit 3]
   onepilot-agent.mjs recommend --query TEXT [--topics A,B] [--districts A,B] [--formats A,B] [--limit 3]
   onepilot-agent.mjs memory view
-  onepilot-agent.mjs memory merge --type preferences|availability|application_profile|answer_examples --json '{"key":"value"}'
+  onepilot-agent.mjs memory merge --type preferences|availability|application_profile|answer_examples --json '{"key":"value"}' | --json-stdin
   onepilot-agent.mjs memory delete --type preferences|availability|application_profile|answer_examples
   onepilot-agent.mjs memory delete --all
   onepilot-agent.mjs subscription view
@@ -48,8 +49,8 @@ Usage:
   onepilot-agent.mjs subscription disable
   onepilot-agent.mjs application prepare --detail-token dt_xxx --questions TEXT
   onepilot-agent.mjs event-context --detail-token dt_xxx
-  onepilot-agent.mjs feedback record --recommendation-id rec_xxx --action interested [--position 0] [--profile-json '{}'] [--target-profile-json '{}']
-  onepilot-agent.mjs issue report --description TEXT [--title TEXT] [--command TEXT] [--error-code TEXT] [--metadata-json '{}']
+  onepilot-agent.mjs feedback record --recommendation-id rec_xxx --action interested [--position 0] [--profile-json '{}'] [--profile-json-stdin] [--target-profile-json '{}'] [--target-profile-json-stdin]
+  onepilot-agent.mjs issue report --description TEXT [--title TEXT] [--command TEXT] [--error-code TEXT] [--metadata-json '{}'] [--metadata-json-stdin]
 `;
 }
 
@@ -79,6 +80,10 @@ function splitList(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function readStdinText() {
+  return fs.readFileSync(0, "utf8");
 }
 
 function normalizeSearchText(value) {
@@ -239,6 +244,10 @@ function validateManifest(manifest) {
   const sha256 = String(manifest?.sha256 || "").trim().toLowerCase();
   if (!latestVersion) throw new Error("invalid_manifest_version");
   if (!/^https?:\/\//i.test(zipUrl)) throw new Error("invalid_manifest_zip_url");
+  const parsedZipUrl = new URL(zipUrl);
+  if (parsedZipUrl.protocol !== "https:" || !TRUSTED_PACKAGE_HOSTS.has(parsedZipUrl.hostname)) {
+    throw new Error("untrusted_manifest_zip_url");
+  }
   if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error("invalid_manifest_sha256");
   return {
     name: String(manifest?.name || "OnePilot Skill").trim(),
@@ -262,6 +271,7 @@ async function checkUpdate(args = {}) {
     updateAvailable,
     manifestUrl: url,
     zipUrl: manifest.zipUrl,
+    sha256: manifest.sha256,
     releasedAt: manifest.releasedAt,
     changelogUrl: manifest.changelogUrl,
   };
@@ -336,7 +346,7 @@ async function updateSkill(args = {}) {
     const zipPath = path.join(tempDir, "onepilot-skill.zip");
     await downloadFile(check.zipUrl, zipPath);
     const actualSha = sha256File(zipPath);
-    if (actualSha !== validateManifest(await fetchJson(check.manifestUrl)).sha256) {
+    if (actualSha !== check.sha256) {
       throw new Error("sha256_mismatch");
     }
     const extractDir = path.join(tempDir, "extract");
@@ -389,6 +399,7 @@ function accountPolicySummary() {
       recommendationResultsPerRequest: 3,
       eventContextRequestsPerDay: 20,
       websiteBindingCodesPerDay: 5,
+      issueReportsPerDay: 20,
       localSubscriptionFrequency: "daily",
       emailVerificationCodeExpiresInSeconds: 600,
     },
@@ -396,7 +407,7 @@ function accountPolicySummary() {
       emailVerification: "Supabase Auth may return rate_limited; OnePilot does not define a fixed daily email-code count.",
       memory: "No daily quota; allowed memory types are preferences, availability, application_profile, and answer_examples. One row is stored per account and memory type.",
       feedback: "No daily quota; feedback must reference a recommendation returned to the current bound agent.",
-      issueReports: "No daily quota; bug reports require a title or description and should be sanitized.",
+      issueReports: "20 reports per account per day; bug reports require a title or description and should be sanitized.",
     },
   };
 }
@@ -573,7 +584,7 @@ async function memory(args) {
   }
   if (mode !== "merge") throw new Error("unsupported_memory_mode");
   const memoryType = String(args.type || "").trim();
-  const rawJson = String(args.json || "").trim();
+  const rawJson = String(args["json-stdin"] ? readStdinText() : args.json || "").trim();
   if (!memoryType) throw new Error("missing_memory_type");
   if (!rawJson) throw new Error("missing_memory_json");
   let payload;
@@ -587,6 +598,11 @@ async function memory(args) {
     memoryType,
     payload,
   }, config.agentToken);
+}
+
+function jsonOption(args, key, stdinKey) {
+  if (args[stdinKey]) return readStdinText();
+  return args[key];
 }
 
 function parseOptionalJson(value, errorName) {
@@ -618,9 +634,9 @@ async function feedback(args) {
     source: String(args.source || "agent").trim(),
     position: args.position === undefined ? undefined : Number(args.position),
     note: String(args.note || "").trim(),
-    requesterProfile: parseOptionalJson(args["profile-json"], "invalid_profile_json"),
-    targetProfile: parseOptionalJson(args["target-profile-json"], "invalid_target_profile_json"),
-    metadata: parseOptionalJson(args["metadata-json"], "invalid_metadata_json"),
+    requesterProfile: parseOptionalJson(jsonOption(args, "profile-json", "profile-json-stdin"), "invalid_profile_json"),
+    targetProfile: parseOptionalJson(jsonOption(args, "target-profile-json", "target-profile-json-stdin"), "invalid_target_profile_json"),
+    metadata: parseOptionalJson(jsonOption(args, "metadata-json", "metadata-json-stdin"), "invalid_metadata_json"),
   }, config.agentToken);
 }
 
@@ -641,7 +657,7 @@ async function issue(args) {
     metadata: {
       agentLabel: config.label || "",
       skillDir: SKILL_DIR,
-      ...parseOptionalJson(args["metadata-json"], "invalid_metadata_json"),
+      ...parseOptionalJson(jsonOption(args, "metadata-json", "metadata-json-stdin"), "invalid_metadata_json"),
     },
   }, config.agentToken);
 }

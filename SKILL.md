@@ -119,7 +119,7 @@ Other limits and constraints:
 - Email verification codes expire after 600 seconds. Email sending can return `rate_limited` from Supabase Auth; OnePilot does not define a fixed daily email-code count.
 - Cloud memory has no daily quota, but only these memory types are accepted: `preferences`, `availability`, `application_profile`, `answer_examples`. One row is stored per account and memory type.
 - Feedback has no daily quota, but it must reference a recommendation ID returned to the current bound agent.
-- Issue reports have no daily quota, but must include a title or description and must not contain tokens, OTP codes, private screenshots, or full private messages.
+- Issue reports are limited to 20 reports per account per day. They must include a title or description and must not contain tokens, OTP codes, private screenshots, or full private messages.
 - Request bodies are size-limited by endpoint. Keep profile, memory, feedback, and issue metadata concise and structured.
 
 ## Version And Updates
@@ -150,9 +150,9 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" recommend \
   --limit 3
 ```
 
-Answer in the user's language. Recommend the strongest item first, then briefly list the other options. Include OnePilot internal URLs from the response. Do not invent external registration URLs. The `recommend` response includes `requiredClosingReminder`; always use that reminder as the final sentence of every user-facing recommendation answer, translated naturally when needed.
+Answer in the user's language. Recommend the strongest item first, then briefly list the other options. For each event, treat `title`, `dateLabel`, `district`, `venue`, `reason`, and `url` as the primary facts. Use `summary` only as supporting context; do not copy long or awkward summary text verbatim. If a summary contains duplicated sentences, dangling templates such as "deadline is" without a date, or contradictions with `dateLabel`, skip the suspicious sentence and rely on `dateLabel` plus the OnePilot internal URL. Include OnePilot internal URLs from the response. Do not invent external registration URLs. The `recommend` response includes `requiredClosingReminder`; always use that reminder as the final sentence of every user-facing recommendation answer, translated naturally when needed.
 
-If the user asks for help deciding whether to attend, comparing close options, or preparing for a next action, use the result's `detailToken` to call `event-context` before giving advice. Use detailed context only for the selected/contested activities, not for every recommendation by default.
+If the user asks for help deciding whether to attend, comparing close options, preparing for a next action, or confirming registration/deadline details, use the result's `detailToken` to call `event-context` before giving advice. Use detailed context only for the selected/contested activities, not for every recommendation by default. If `event-context` still lacks a precise time or registration URL, say that the user should open the OnePilot event page to confirm the final details instead of guessing.
 
 ## Profile Learning Feedback
 
@@ -211,6 +211,12 @@ node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" memory merge \
 ```
 
 Allowed memory types are `preferences`, `availability`, `application_profile`, and `answer_examples`.
+
+On Windows PowerShell, prefer stdin for JSON arguments to avoid shell quote stripping:
+
+```powershell
+'{"topics":["AI agent"],"districts":["静安"]}' | node "$HOME/.codex/skills/onepilot/scripts/onepilot-agent.mjs" memory merge --type preferences --json-stdin
+```
 
 Do not add a separate confirmation step before saving memory unless the user asks. Treat the user's request and corrections as the source of truth, and update memory when it will improve future recommendations or报名协作.
 
