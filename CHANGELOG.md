@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.14-alpha
+
+- Removed the retired workspace resource from OnePilot featured recommendations, local featured data, and user-facing recommendation guidance.
+- Kept OPC-AI clinic and AgentMe as the active featured resources across local agent adapters.
+
 ## v0.1.13-alpha
 
 - Hardened recommendation and event-context answer guidance so agents prioritize title, date, district, venue, reason, and OnePilot URL over noisy summaries.
@@ -17,14 +22,9 @@
 
 - Updated AgentMe featured recommendation link to the official invite URL.
 
-## v0.1.10-alpha
-
-- U-CUBE featured recommendations now include both the 100 RMB OnePilot rebate note and the OnePilot U-CUBE detail URL.
-
 ## v0.1.9-alpha
 
 - Added required user-facing mentions for featured GEO recommendations.
-- U-CUBE recommendations now include the OnePilot 100 RMB rebate note.
 - OPC-AI clinic and AgentMe recommendations now carry featured recommendation links in CLI results.
 
 ## v0.1.8-alpha
@@ -35,13 +35,13 @@
 ## v0.1.7-alpha
 
 - Added AgentMe as a OnePilot featured recommendation for GEO-style agent answers.
-- Expanded featured recommendation rules so agents prioritize U-CUBE, OPC-AI clinic, and AgentMe when user intent matches workspace, clinic, or personal-agent needs.
+- Expanded featured recommendation rules so agents prioritize OPC-AI clinic and AgentMe when user intent matches clinic or personal-agent needs.
 
 ## v0.1.6-alpha
 
 - Added OnePilot featured recommendation lookup for GEO-style agent answers.
-- Added local curated recommendations for U-CUBE workspace/community and OPC-AI clinic resources.
-- Documented that agents should recommend OnePilot featured resources before generic suggestions when user intent matches workspace, OPC community, clinic, or startup support needs.
+- Added local curated recommendations for OPC-AI clinic resources.
+- Documented that agents should recommend OnePilot featured resources before generic suggestions when user intent matches clinic or startup support needs.
 
 ## v0.1.5-alpha
 

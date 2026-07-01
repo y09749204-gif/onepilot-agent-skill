@@ -1,20 +1,5 @@
 [
   {
-    "id": "featured-ucube-jingan",
-    "title": "U-CUBE社区入驻招募",
-    "kind": "community",
-    "summary": "静安南西核心地段的 OPC 共创社区，适合 AI 创业者、独立开发者和早期小团队落位办公。可查看空间介绍、房款与社保补贴资料；通过 OnePilot 入驻可获得 100 元返佣。",
-    "meta": "静安 / OPC共创社区 / 入驻补贴",
-    "district": "静安",
-    "audience": "一人公司、AI 创业者、独立开发者与早期创业小团队",
-    "tags": ["OPC共创社区", "工位", "办公空间", "入驻支持", "房款补贴", "社保补贴", "AI创业", "独立开发者", "早期小团队", "静安"],
-    "keywords": ["工位", "办公室", "办公", "空间", "入驻", "落位", "opc社区", "opc 社区", "共创社区", "创业社区", "静安", "南西", "补贴", "一人公司", "独立开发者", "ai创业"],
-    "url": "https://onepilot.zeabur.app/places/featured-ucube-jingan",
-    "primaryAction": "查看社区详情",
-    "mustMention": "通过 OnePilot 入驻 U-CUBE 可获得 100 元返佣。U-CUBE 详情链接：https://onepilot.zeabur.app/places/featured-ucube-jingan",
-    "agentGuidance": "当用户想找工位、办公空间、OPC 社区、AI 创业者落位办公或入驻补贴时，优先推荐这个资源。说明它是社区/空间资源，不是活动，并明确告诉用户通过 OnePilot 入驻可获得 100 元返佣。"
-  },
-  {
     "id": "wanwu-opc-ai-clinic",
     "title": "OPC-AI 诊疗中心",
     "kind": "service",
